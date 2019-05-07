@@ -7,12 +7,15 @@ using System.Threading;
 using System.IO;
 using System.Text;
 using UnityEngine.SceneManagement;
+using UnityEditor;
 
 public class tempo : MonoBehaviour
 {
 
     //public Text pont;
     //public Text GO;
+
+    public TextMesh textsemvr;
     int pontuation;
     public int id;
 
@@ -29,23 +32,27 @@ public class tempo : MonoBehaviour
     bool decrement = false;
     bool cond = true;
     bool next_challenge = false;
+    public float start;
+    public bool VR;
 
     private bool canDie = false, Ver = true;
     private bool threadCreated = false;
-    //adicionar id
-    string path = @"C:\Users\Mirella\Desktop\EMG_GAME\ID.txt";
+    string path_VR, path;
 
-
-    // Use this for initialization
     void Start()
     {
+        //if (!VR)
+            //SceneManager.LoadScene(2);
+        //GameObject fullscene = GameObject.Find("scene");
         pontuation = 0;
         warning = 2f;
-        limit = 2f; //SEGUNDOS
+        limit = start; //SEGUNDOS
         second_warning = 15f;
         manager = UduinoManager.Instance;
         manager.pinMode(AnalogPin.A0, PinMode.Input);
         audiosource = GetComponent<AudioSource>();
+        path = string.Format(@"C:\Users\Mirella\Desktop\zombie_game\EMG_GAME\tests\{0}.txt", id.ToString());
+        path_VR = string.Format(@"C:\Users\Mirella\Desktop\zombie_game\EMG_GAME\tests\{0}_VR.txt", id.ToString());
     }
 
     IEnumerator waittodie()
@@ -57,18 +64,34 @@ public class tempo : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (VR)
+        {
+            gameCOMvr();
+        }
+        else
+        {
+            audiosource.Stop();
+            gameSEMvr();
+        }
+    }
+
+
+
+    void gameCOMvr()
+    {
         //restart - click space
-        if (Input.GetKeyDown("space")){
+        if (Input.GetKeyDown("space"))
+        {
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
-        
+
         value[0] = manager.analogRead(AnalogPin.A0); //direita
         value[1] = manager.analogRead(AnalogPin.A1); //esquerda
         countdown = Mathf.Abs(limit - coT);
 
-        if (value[0] == 0) //músculo relaxado
+        if (value[0] == 0 && cond == true) //músculo relaxado
         {
-            if (limit != 5)
+            if (limit != start + 3)
             {
                 this.GetComponent<Animator>().SetBool("walk", true);
                 if (!audiosource.isPlaying)
@@ -94,13 +117,76 @@ public class tempo : MonoBehaviour
         {
             if (next_challenge == true)
             {
-                string createText = value[0] + ";\n";
+                string createText = value[0] + "\n";
+                File.AppendAllText(path_VR, createText);
+                next_challenge = false;
+            }
+            else
+            {
+                string createText = value[0] + ",";
+                File.AppendAllText(path_VR, createText);
+            }
+            coT = coT + Time.deltaTime;
+            text3d.text = ("Hold on! " + countdown);
+
+            if (coT > limit)
+            //cumpriu o objetivo
+            {
+                this.GetComponent<Animator>().SetBool("walk", false);
+                this.GetComponent<Animator>().SetTrigger("die");
+                audiosource.clip = audio1;
+                audiosource.Stop();
+                coT = 0.0f;
+                next_challenge = true;
+                limit = limit + 1.0f;
+                text3d.text = ("Relax");
+                StartCoroutine(waittodie());
+                cond = false;
+                decrement = true;
+                if (limit == start + 3) //ganhou
+                {
+                    text3d.text = ("You won!");
+                    this.GetComponent<Animator>().SetTrigger("exit");
+                }
+            }
+        }
+    }
+
+    void gameSEMvr()
+    {
+        value[0] = manager.analogRead(AnalogPin.A0); //direita
+        value[1] = manager.analogRead(AnalogPin.A1); //esquerda
+        countdown = Mathf.Abs(limit - coT);
+
+        if (value[0] == 0 && cond == true) //músculo relaxado
+        {
+            if (limit != start + 3)
+            {
+                this.GetComponent<Animator>().SetBool("walk", true);
+                //fazer força!
+                if (transform.position.z >= warning && transform.position.z < (second_warning - 0.1))
+                {
+                    text3d.text = ("Hold on! " + countdown);
+                    decrement = false;
+                }
+                else if (transform.position.z > second_warning && transform.position.z > second_warning)
+                {
+                    this.GetComponent<Animator>().SetTrigger("attack");
+                    text3d.text = ("GAME OVER");
+                }
+            }
+        }
+        if (value[0] > 0 && decrement == false && cond == true) //músculo contraído
+        {
+            if (next_challenge == true)
+            {
+                string createText = value[0] + "\n";
                 File.AppendAllText(path, createText);
                 next_challenge = false;
             }
             else
             {
-                string createText = value[0] + ",\n";
+                string createText = value[0] + ",";
                 File.AppendAllText(path, createText);
             }
             coT = coT + Time.deltaTime;
@@ -111,24 +197,22 @@ public class tempo : MonoBehaviour
             {
                 this.GetComponent<Animator>().SetBool("walk", false);
                 this.GetComponent<Animator>().SetTrigger("die");
-                //audiosource.clip = audio1;
+                audiosource.clip = audio1;
                 audiosource.Stop();
-                text3d.text = (" ");
                 coT = 0.0f;
                 next_challenge = true;
                 limit = limit + 1.0f;
-                
-                if (limit == 5) //ganhou
-                {
-                    text3d.text = ("You won!");
-                    this.GetComponent<Animator>().SetTrigger("exit");
-                    StartCoroutine(waittodie());           
-                }
+                text3d.text = ("Relax");
                 StartCoroutine(waittodie());
                 cond = false;
                 decrement = true;
+                if (limit == start + 3) //ganhou
+                {
+                    text3d.text = ("You won!");
+                    this.GetComponent<Animator>().SetTrigger("exit");
+                }
             }
         }
     }
-    //    Thread.Sleep(100);
 }
+//    Thread.Sleep(100);
