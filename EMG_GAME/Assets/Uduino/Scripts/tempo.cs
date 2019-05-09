@@ -18,6 +18,8 @@ public class tempo : MonoBehaviour
     public TextMesh textsemvr;
     int pontuation;
     public int id;
+    public int health;
+    
 
     float warning, second_warning, limit;
     UduinoManager manager;
@@ -53,6 +55,7 @@ public class tempo : MonoBehaviour
         audiosource = GetComponent<AudioSource>();
         path = string.Format(@"C:\Users\Mirella\Desktop\zombie_game\EMG_GAME\tests\{0}.txt", id.ToString());
         path_VR = string.Format(@"C:\Users\Mirella\Desktop\zombie_game\EMG_GAME\tests\{0}_VR.txt", id.ToString());
+        health = (int)(limit*1000);
     }
 
     IEnumerator waittodie()
@@ -74,7 +77,6 @@ public class tempo : MonoBehaviour
             gameSEMvr();
         }
     }
-
 
 
     void gameCOMvr()
@@ -103,13 +105,14 @@ public class tempo : MonoBehaviour
                 //fazer força!
                 if (transform.position.z >= warning && transform.position.z < (second_warning - 0.1))
                 {
-                    text3d.text = ("Hold on! " + countdown);
+                    //text3d.text = ("Hold on! " + countdown);
+                    health = (int)(countdown * 1000);
                     decrement = false;
                 }
                 else if (transform.position.z > second_warning && transform.position.z > second_warning)
                 {
                     this.GetComponent<Animator>().SetTrigger("attack");
-                    text3d.text = ("GAME OVER");
+                    text3d.text = ("MAIS FORÇA!");
                 }
             }
         }
@@ -127,7 +130,8 @@ public class tempo : MonoBehaviour
                 File.AppendAllText(path_VR, createText);
             }
             coT = coT + Time.deltaTime;
-            text3d.text = ("Hold on! " + countdown);
+            health = (int)(countdown*1000);
+            //text3d.text = ("Hold on! " + countdown);
 
             if (coT > limit)
             //cumpriu o objetivo
@@ -139,12 +143,14 @@ public class tempo : MonoBehaviour
                 coT = 0.0f;
                 next_challenge = true;
                 limit = limit + 1.0f;
+                //mudar cor p branco
                 text3d.text = ("Relax");
                 StartCoroutine(waittodie());
                 cond = false;
                 decrement = true;
                 if (limit == start + 3) //ganhou
                 {
+                    //mudar cor p verde
                     text3d.text = ("You won!");
                     this.GetComponent<Animator>().SetTrigger("exit");
                 }
@@ -164,15 +170,10 @@ public class tempo : MonoBehaviour
             {
                 this.GetComponent<Animator>().SetBool("walk", true);
                 //fazer força!
-                if (transform.position.z >= warning && transform.position.z < (second_warning - 0.1))
+                if (transform.position.z >= warning && transform.position.z < (second_warning + 3))
                 {
                     text3d.text = ("Hold on! " + countdown);
                     decrement = false;
-                }
-                else if (transform.position.z > second_warning && transform.position.z > second_warning)
-                {
-                    this.GetComponent<Animator>().SetTrigger("attack");
-                    text3d.text = ("GAME OVER");
                 }
             }
         }
@@ -208,7 +209,7 @@ public class tempo : MonoBehaviour
                 decrement = true;
                 if (limit == start + 3) //ganhou
                 {
-                    text3d.text = ("You won!");
+                    text3d.text = ("");
                     this.GetComponent<Animator>().SetTrigger("exit");
                 }
             }
